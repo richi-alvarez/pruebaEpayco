@@ -26,3 +26,7 @@ editar:
 whallet:
    path: /whallet
    controller: App\Controller\WhalletController::index
+
+recargar:
+   path: /recargar
+   controller: App\Controller\WhalletController::recargar
