@@ -10,6 +10,7 @@ use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Constraints\Email;
 use App\Entity\User;
 use App\Entity\Whallet;
+use App\Services\JwtAuth;
 
 class UserController extends AbstractController
 {
@@ -115,7 +116,7 @@ class UserController extends AbstractController
         return $this->resjson($data);
     }
 
-    public function login(Request $request){
+    public function login(Request $request, JwtAuth $jwt_auth){
         //recibir datos por post
         $json = $request->get('json', null);
          //convertir a objeto
@@ -135,24 +136,24 @@ class UserController extends AbstractController
             //cifrar contraseña
             $pwd = hash('sha256',$password);
             //si todo es valido, llamar servicio de autentificacion jwt, token
-
-            //crear servicio jwt
-            $data = [
-                'status' => 'success',
-                'code' => 200,
-                'message' => 'El usuario no se ha podido identificar'
-                    ];
+            if($gettoken){
+                $signup =  $jwt_auth->signup($email,$pwd,$gettoken );
             }else{
-                $data = [
-                    'status' => 'error',
-                    'code' => 200,
-                    'message' => 'El usuario no se ha podido identificar'
-                ];
+                $signup =  $jwt_auth->signup($email,$pwd);
             }
-
+            return new JsonResponse($signup);
+            
             }
-     
-        //si todo es ok, responder
-        return $this->resjson($data);
+    
+    }else{
+        $data = [
+            'status' => 'error',
+            'code' => 200,
+            'message' => 'no se enviaron datos o datos incorrectos'
+        ];
     }
+            //si todo es ok, responder
+            return $this->resjson($data);
+}
+
 }
