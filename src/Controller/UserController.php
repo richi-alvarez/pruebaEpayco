@@ -27,18 +27,12 @@ class UserController extends AbstractController
     }   
     public function index()
     {
-        $user_repo = $this->getDoctrine()->getRepository(User::class);
-        $whallet_repo = $this->getDoctrine()->getRepository(Whallet::class);
-
-        $users = $user_repo->findAll();
-        $user = $user_repo->find(1);
         $data = [
             'message' => 'Welcome to your new controller!',
             'path' => 'src/Controller/UserController.php',
         ];
-    
 
-        return $this->resjson ($users);
+        return $this->resjson ($data);
     }
 
     public function registro(Request $request){
@@ -46,17 +40,6 @@ class UserController extends AbstractController
         $json = $request->get('json', null);
         //decodificar el json
         $params = json_decode($json);
-
-        //hacer una respuesta
-
-        $data = [
-            'status' => 'success',
-            'code' => 200,
-            'message' => 'Se guardaron los datos con exito',
-            'user' => $params,
-            // 'billetera' => $billetera
-        ];
-
         //comprobar y valdiar datos
         if($json != null){
             $name = (!empty($params->name)) ? $params->name: null;
@@ -70,34 +53,53 @@ class UserController extends AbstractController
                 new Email()
             ]);
 
-            if(!empty($email) && count($validate_email) ==0 && !empty($name) && !empty($documento) && !empty($celular)  && !empty($password)){
+        if(!empty($email) && count($validate_email) ==0 
+            && !empty($name) && !empty($documento) 
+            && !empty($celular)  && !empty($password))
+        {
         //si la validación es correcta, crear el objeto de usuario
-        $user = new User();
-        $user->setName($name);
-        $user->setDocumento($documento);
-        $user->setEmail($email);
-        $user->setCelular($celular);
-        $user->setCreatedAt(new \Datetime('now'));
-        //sifrar contraseña
-        $pwd = hash('sha256',$password);
-        $user->setPassword($pwd);
-        //comprobar si existe el usuario
+            $user = new User();
+            $user->setName($name);
+            $user->setDocumento($documento);
+            $user->setEmail($email);
+            $user->setCelular($celular);
+            $user->setCreatedAt(new \Datetime('now'));
+            //sifrar contraseña
+            $pwd = hash('sha256',$password);
+            $user->setPassword($pwd);
+            //comprobar si existe el usuario
+            $doctrine=$this->getDoctrine();
+            $em =$doctrine->getManager();
 
-        //si no existe guardar en bd
+            $user_repo = $doctrine->getRepository(User::class);
+            $isset_user = $user_repo->findBy(array(
+                'email'=>$email
+            ));
+            //si no existe guardar en bd
+                if(count($isset_user)==0){
+                    //guardar usuario
+                    $em->persist($user);
+                    $em->flush();
+                    $data = [
+                        'status' => 'success',
+                        'code' => 200,
+                        'message' => 'Se guardaron los datos con exito',
+                        'user' => $user
+                    ];
 
-        //hacer respuesta en json
-                $data = [
-                    'status' => 'success',
-                    'code' => 200,
-                    'message' => 'Se guardaron los datos con exito',
-                    'user' => $user
-                ];
-
-            }else{
+                }else{
+                    $data = [
+                        'status' => 'error',
+                        'code' => 200,
+                        'message' => 'El usuario ya existe'
+                    ];
+                }
+          
+        }else{
                 $data = [
                     'status' => 'error',
                     'code' => 400,
-                    'message' => 'email incorrecto'
+                    'message' => 'no se enviaron datos o datos incorrectos'
                 ];
             }
 
@@ -110,7 +112,47 @@ class UserController extends AbstractController
             ];
         }
 
-        return new JsonResponse($data);
+        return $this->resjson($data);
+    }
 
+    public function login(Request $request){
+        //recibir datos por post
+        $json = $request->get('json', null);
+         //convertir a objeto
+         $params = json_decode($json);
+        //comporvar y validar datos
+        if($json != null){
+            $email = (!empty($params->email)) ? $params->email: null;
+            $password = (!empty($params->password)) ? $params->password: null;
+            $gettoken = (!empty($params->gettoken)) ? $params->gettoken: null;
+            $validator = Validation::createValidator();
+            $validate_email = $validator->validate($email, [
+                new Email()
+            ]);
+
+            if(!empty($email) && count($validate_email) ==0  && !empty($password))
+            {
+            //cifrar contraseña
+            $pwd = hash('sha256',$password);
+            //si todo es valido, llamar servicio de autentificacion jwt, token
+
+            //crear servicio jwt
+            $data = [
+                'status' => 'success',
+                'code' => 200,
+                'message' => 'El usuario no se ha podido identificar'
+                    ];
+            }else{
+                $data = [
+                    'status' => 'error',
+                    'code' => 200,
+                    'message' => 'El usuario no se ha podido identificar'
+                ];
+            }
+
+            }
+     
+        //si todo es ok, responder
+        return $this->resjson($data);
     }
 }
