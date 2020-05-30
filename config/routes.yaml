@@ -7,6 +7,10 @@ user:
    path: /user
    controller: App\Controller\UserController::index
 
+registro:
+   path: /registro
+   controller: App\Controller\UserController::registro
+   methods: [POST]  
 
 #wallet controller routes
 whallet:
