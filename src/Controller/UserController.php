@@ -25,7 +25,8 @@ class UserController extends AbstractController
         $response->headers->set('Content-Type', 'application/json');
         //Devolver la respuesta
         return $response;
-    }   
+    }
+
     public function index()
     {
         $data = [
@@ -38,22 +39,23 @@ class UserController extends AbstractController
 
     public function registro(Request $request){
         //recojer los datos por post
-        $json = $request->get('json', null);
         //decodificar el json
-        $params = json_decode($json);
+        $params = json_decode($request->getContent(), true);
+      
         //comprobar y valdiar datos
-        if($json != null){
-            $name = (!empty($params->name)) ? $params->name: null;
-            $documento = (!empty($params->documento)) ? $params->documento: null;
-            $email = (!empty($params->email)) ? $params->email: null;
-            $celular = (!empty($params->celular)) ? $params->celular: null;
-            $password = (!empty($params->password)) ? $params->password: null;
+       
+        if($params != null){
+            $name = (!empty($params['name'])) ? $params['name']: null;
+            $documento = (!empty($params['documento'])) ? $params['documento']: null;
+            $email = (!empty($params['email'])) ? $params['email']: null;
+            $celular = (!empty($params['celular'])) ? $params['celular']: null;
+            $password = (!empty($params['password'])) ? $params['password']: null;
 
             $validator = Validation::createValidator();
             $validate_email = $validator->validate($email, [
                 new Email()
             ]);
-
+          
         if(!empty($email) && count($validate_email) ==0 
             && !empty($name) && !empty($documento) 
             && !empty($celular)  && !empty($password))
@@ -104,7 +106,6 @@ class UserController extends AbstractController
                 ];
             }
 
-            
         }else{
             $data = [
                 'status' => 'error',
@@ -118,14 +119,12 @@ class UserController extends AbstractController
 
     public function login(Request $request, JwtAuth $jwt_auth){
         //recibir datos por post
-        $json = $request->get('json', null);
-         //convertir a objeto
-         $params = json_decode($json);
+         $params = json_decode($request->getContent(), true);
         //comporvar y validar datos
-        if($json != null){
-            $email = (!empty($params->email)) ? $params->email: null;
-            $password = (!empty($params->password)) ? $params->password: null;
-            $gettoken = (!empty($params->gettoken)) ? $params->gettoken: null;
+        if($params != null){
+            $email = (!empty($params['email'])) ? $params['email']: null;
+            $password = (!empty($params['password'])) ? $params['password']: null;
+            $gettoken = (!empty($params['gettoken'])) ? $params['gettoken']: null;
             $validator = Validation::createValidator();
             $validate_email = $validator->validate($email, [
                 new Email()
@@ -154,6 +153,16 @@ class UserController extends AbstractController
     }
             //si todo es ok, responder
             return $this->resjson($data);
+}
+
+public function editar(Request $request, JwtAuth $jwt_auth){
+
+    $data = [
+        'status' => 'error',
+        'code' => 200,
+        'message' => 'no se enviaron datos o datos incorrectos'
+    ];
+    return $this->resjson($data);
 }
 
 }

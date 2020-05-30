@@ -15,7 +15,12 @@ registro:
 login:
    path: /login
    controller: App\Controller\UserController::login
-   methods: [POST]  
+   methods: [POST] 
+
+editar:
+   path: /editar
+   controller: App\Controller\UserController::editar
+   methods: [PUT]  
 
 #wallet controller routes
 whallet:

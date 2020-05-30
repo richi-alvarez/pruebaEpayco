@@ -50,10 +50,7 @@ class JwtAuth{
                 'message' => 'Login incorrecto'
             ];
         }
-       
-
         //devolver datos
-
         return $data;
     }
 }
