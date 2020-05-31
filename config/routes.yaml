@@ -30,3 +30,8 @@ whallet:
 recargar:
    path: /recargar
    controller: App\Controller\WhalletController::recargar
+
+pagar:
+   path: /pagar
+   controller: App\Controller\WhalletController::pagar
+   methods: [POST]

@@ -35,6 +35,14 @@ class Whallet
      */
     private $token;
 
+      /**
+     * @var string
+     *
+     * @ORM\Column(name="session", type="string", length=255, nullable=false)
+     */
+    private $session;
+
+
 
     /**
      * @var \DateTime|null
@@ -78,6 +86,18 @@ class Whallet
     public function setToken(?string $token): self
     {
         $this->token = $token;
+
+        return $this;
+    }
+
+    public function getSession(): ?string
+    {
+        return $this->session;
+    }
+
+    public function setSession(?string $session): self
+    {
+        $this->session = $session;
 
         return $this;
     }
