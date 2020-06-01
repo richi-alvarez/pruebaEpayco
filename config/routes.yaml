@@ -40,3 +40,8 @@ confirmar:
    path: /confirmar
    controller: App\Controller\WhalletController::confirmar
    methods: [POST]
+
+consultar:
+   path: /consultar
+   controller: App\Controller\WhalletController::consultar
+   methods: [POST]
