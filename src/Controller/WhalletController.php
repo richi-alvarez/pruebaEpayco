@@ -15,6 +15,10 @@ use Firebase\JWT\JWT;
 
 class WhalletController extends AbstractController
 {
+    public $key;
+    public function __construct(){
+        $this->key = '34rsdad52';
+    }
     private function resjson($data){
         //Serializar datos con servicio serializer
         $json = $this->get('serializer')->serialize($data, 'json');
@@ -40,7 +44,6 @@ class WhalletController extends AbstractController
         $params = json_decode($request->getContent(), true);
          //recojer el tocken
         $tokenArray= $params[0];
-        $texto = preg_replace('([^A-Za-z0-9 ])', '', $tokenArray);
         $cadena_limpia = str_replace('"\"', '', $tokenArray);
         $token = $cadena_limpia;
         //comprar si es correcto el token
@@ -104,7 +107,6 @@ class WhalletController extends AbstractController
 
     public function pagar(Request $request, JwtAuth $jwt_auth ){
         //recoger los datos por post
-       
          $params = json_decode($request->getContent(), true);
           //recojer el tocken
          $tokenArray= $params[0];
@@ -113,8 +115,7 @@ class WhalletController extends AbstractController
          $token = $cadena_limpia;
          //comprar si es correcto el token
          $authCheck = $jwt_auth->checkToken($token);
-         if($authCheck){
-           
+         if($authCheck){ 
          //recoger el objeto del usuario identificado
          $identity = $jwt_auth->checkToken($token, true);
          //comprombar y validar datos
@@ -142,15 +143,7 @@ class WhalletController extends AbstractController
                     ]);
                     //generar token de validación
                     $token = bin2hex(random_bytes(3));
-                    $jwt = [
-                        'sub' => $user_id,
-                        'documento' => $documento,
-                        'celular' => $celular,
-                        'pagar' => $valor,
-                        'iar' => time(),
-                        'exp' => time() + (60 * 15)
-                    ];
-                    $id_session = JWT::encode($jwt, '34rsdad52', 'HS256');
+                    $id_session = $jwt_auth->paymentToken($user_id,$documento,$celular,$valor);
                                 // Envio de correo
                               //  $destino = $usuario->getEmail();
                                 $destino = 'ric.salda.94@gmail.com';
@@ -206,5 +199,88 @@ class WhalletController extends AbstractController
          }
          return $this->resjson($data);
      }
+
+     public function confirmar(Request $request, JwtAuth $jwt_auth ){
+       // var_dump('llego');
+        //recoger los datos por post
+       $params = json_decode($request->getContent(), true);
+          //recojer el tocken
+         $tokenArray= $params[0];
+         $idSessionArray= $params[1];
+         //valor del token de autentificacion
+         $token = $tokenArray;
+         //valor del token de la sección
+         $token_seccion = $params['token'];      
+         //valor de la sección  
+         $sessionId =$idSessionArray;
+         //comprar si es correcto el token
+        $authCheck = $jwt_auth->checkToken($token);
+
+          if($authCheck){ 
+                 $identity = $jwt_auth->checkToken($token, true);
+                 $user_id=$identity->sub;
+                 $usuario = $this->getDoctrine()->getRepository(User::class)->findOneBy([
+                    'id'=>$user_id
+                ]);
+                if($usuario){
+                    foreach ($usuario->getWhallets() as $whallet) {
+                     $saldo_whallet = $whallet->getSaldo();
+                     $id_whallet=$whallet->getId();
+                     $token_whallet = $whallet->getToken();
+                     $whallet_session = $whallet->getSession();
+                    }
+                    //verificar que el token y la sessión exista 
+                    if( $token_whallet == $token_seccion && $sessionId == $whallet_session ){
+                        $whallet = $this->getDoctrine()->getRepository(Whallet::class)->findOneBy([
+                            'id'=>$id_whallet
+                        ]);
+                        //verificar que la billetera asociada al cliente exista
+                        if($whallet){
+                            $id_session = $jwt_auth->checkTokenPayment($whallet_session);
+                            if($id_session){
+                            $pagar = $id_session->pagar;
+                            $nuevo_saldo = $saldo_whallet-$pagar;
+                            $em = $this->getDoctrine()->getManager(); 
+                            $whallet->setToken('');
+                            $whallet->setSession('');
+                            $whallet->setSaldo($nuevo_saldo);
+                            //guardar bd
+                            $em->persist($whallet);
+                            $em->flush();
+                                 $data=[
+                                'status' => 'success',
+                                'code' => 200,
+                                'message' => ' Pago realizado con exito '
+                                ];
+                            }else{
+                                $data = [
+                                    'status' => 'error',
+                                    'code' => 400,
+                                    'message' => 'token o sessión expirada!'
+                                ];
+                            }                  
+                        }
+                     
+                       
+                    }else{
+                        $data = [
+                            'status' => 'error',
+                            'code' => 400,
+                            'message' => 'token o sessión expirada!'
+                        ];
+                    }
+                }
+                 
+         }else{
+            $data = [
+                'status' => 'error',
+                'code' => 400,
+                'message' => 'Error, no se envio la información completa o  información incorrecta'
+            ];
+         }
+               
+        return $this->resjson($data);
+
+    }
 
 }

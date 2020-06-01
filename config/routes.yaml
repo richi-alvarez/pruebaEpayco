@@ -35,3 +35,8 @@ pagar:
    path: /pagar
    controller: App\Controller\WhalletController::pagar
    methods: [POST]
+
+confirmar:
+   path: /confirmar
+   controller: App\Controller\WhalletController::confirmar
+   methods: [POST]

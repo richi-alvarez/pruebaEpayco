@@ -74,5 +74,39 @@ class JwtAuth{
 			}else{
 				return $auth;
 			}
-		}
+        }
+        
+    public function paymentToken($user_id,$documento,$celular,$valor){
+        $jwt = [
+            'sub' => $user_id,
+            'documento' => $documento,
+            'celular' => $celular,
+            'pagar' => $valor,
+            'iar' => time(),
+            'exp' => time() + (60 * 15)
+        ];
+        $id_session = JWT::encode($jwt, 'pago', 'HS256');
+        return $id_session;
+        }
+
+    public function checkTokenPayment($token_seccion){
+            $auth = false;
+                try{
+                    $decoded = JWT::decode($token_seccion,'pago',['HS256']);
+                    $auth = true;
+                    }catch(\UnexpectedValueException $e){
+                        $auth = false;
+                    }catch(\DomainException $e){
+                        $auth = false;
+                    }
+        
+            if (isset($decoded) && !empty($decoded) && is_object($decoded) && isset($decoded->sub) ) {
+            
+                    return $decoded;
+                
+            }else{
+                return $auth;
+            }
+        }
+
 }
