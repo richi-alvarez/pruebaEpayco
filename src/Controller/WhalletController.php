@@ -59,29 +59,77 @@ class WhalletController extends AbstractController
                 $user = $this->getDoctrine()->getRepository(User::class)->findOneBy([
                     'id'=>$user_id
                 ]);
-                $documento = $this->getDoctrine()->getRepository(User::class)->findOneBy([
-                    'documento'=>$documento
-                ]);
-                $celular = $this->getDoctrine()->getRepository(User::class)->findOneBy([
-                    'celular'=>$celular
-                ]);
-                if($documento && $celular){
-                $whallet = new Whallet();
-                $whallet->setUser($user);
-                $whallet->setSaldo($saldo);
-                $whallet->setToken('');
-                $createdAt = new \Datetime('now');
-                $whallet->setCreatedAt($createdAt);
-                //guardar bd
-                $em->persist($whallet);
-                $em->flush();
+                if($user){
+                    /* validar que los datos del cliente logueado concuerden con los datos ingresados*/ 
+                    $algo = [$user];
+                    $something2= json_encode($algo);
+                    $data2 = json_decode($something2, true);
+                    $user_whallet_id=$data2[0]['id'];
+                    $user_whallet_documento=$data2[0]['documento'];
+                    $user_whallet_celular=$data2[0]['celular'];
+                    if($celular ==  $user_whallet_celular &&  $documento ==  $user_whallet_documento){
+                    //validar existe la billetera
+                    $whalletArray=$user->getWhallets();
+                    $countWhallet = count($whalletArray);
+                    if($countWhallet>0){
+                        foreach ($user->getWhallets() as $whallet) {
+                            $saldo_whallet = $whallet->getSaldo();
+                            $id_whallet=$whallet->getId();
+                           }
+                           $exist=true;
+                    }else{
+                        $exist=false;
+                    }
+                           if($exist){
+                               //si tiene saldo aumentarle
+                            $whallet = $this->getDoctrine()->getRepository(Whallet::class)->findOneBy([
+                                'id'=>$id_whallet
+                            ]);
+                          //  agregar el nuevo saldo al existente
+                            $pagar = $saldo;
+                            $nuevo_saldo = $saldo_whallet+$pagar;
+                            $em = $this->getDoctrine()->getManager(); 
+                            $whallet->setToken('');
+                            $whallet->setSession('');
+                            $whallet->setSaldo($nuevo_saldo);
+                            //guardar bd
+                            $em->persist($whallet);
+                            $em->flush();
+                            $data = [
+                                'status' => 'success',
+                                'code' => 200,
+                                'message' => 'se recargo el saldo existente'
+                                 
+                            ];
+                           }else{
+                               // crear billetera
+                            $whallet = new Whallet();
+                            $whallet->setUser($user);
+                            $whallet->setSaldo($saldo);
+                            $whallet->setToken('');
+                            $whallet->setSession('');
+                            $createdAt = new \Datetime('now');
+                            $whallet->setCreatedAt($createdAt);
+                            //guardar bd
+                            $em->persist($whallet);
+                            $em->flush();
+                            $data = [
+                                'status' => 'success',
+                                'code' => 200,
+                                'message' => 'la recarga fue exitosa'
+                            ];
 
-                $data = [
-                    'status' => 'success',
-                    'code' => 200,
-                    'message' => 'la recarga fue exitosa',
-                    'saldo'=> $whallet
-                ];
+                           }
+                   
+                    }else{
+                        $data = [
+                            'status' => 'error',
+                            'code' => 400,
+                            'message' => 'la cedula o celular no se encuentran registrados!'
+                        ];
+                    }
+
+          
                 }else{
                     $data = [
                         'status' => 'error',
@@ -120,7 +168,8 @@ class WhalletController extends AbstractController
              $user_id = ($identity->sub != null) ? $identity->sub : null;
              $documento = $params['documento'];
              $celular = $params['celular'];
-             $valor = $params['valor'];
+             $valor = $params['saldo'];
+            
              if(!empty($user_id)){
                  $em = $this->getDoctrine()->getManager(); 
                 $usuario = $this->getDoctrine()->getRepository(User::class)->findOneBy([
@@ -181,7 +230,7 @@ class WhalletController extends AbstractController
                     ];
                  }
              }
-         }
+          }
          }else{
              $data = [
                  'status' => 'error',
@@ -275,6 +324,7 @@ class WhalletController extends AbstractController
 
     public function consultar(Request $request, JwtAuth $jwt_auth ){
         //recoger los datos por post
+  
          $params = json_decode($request->getContent(), true);
           //recojer el tocken
          $tokenArray= $params[0];
@@ -297,27 +347,58 @@ class WhalletController extends AbstractController
                 $usuario = $this->getDoctrine()->getRepository(User::class)->findOneBy([
                     'id'=>$user_id
                 ]);
-                $documento = $this->getDoctrine()->getRepository(User::class)->findOneBy([
-                    'documento'=>$documento
-                ]);
-                $celular = $this->getDoctrine()->getRepository(User::class)->findOneBy([
-                    'celular'=>$celular
-                ]);
                 if($documento && $celular && $usuario){
+                    //conseguri los datos de la billetera asociado al cliente logueado
                     foreach ($usuario->getWhallets() as $whallet) {
                         $saldo_whallet = $whallet->getSaldo();
                         $id_whallet=$whallet->getId();
+                        $user_whallet=$whallet->getUser();
                        }
-                       $data = [
-                        'status' => 'success',
-                        'code' => 200,
-                        'saldo disponible' => $saldo_whallet." $"
-                    ];
+                    
+                       $em = $this->getDoctrine()->getManager(); 
+                       $whalletR = $this->getDoctrine()->getRepository(User::class)->findOneBy([
+                           'id'=>$user_id
+                       ]);
+                          //verificar que tenga un registro de billetera
+                       if($whalletR){
+                       $algo = [$user_whallet];
+                       $something2= json_encode($algo);
+                       $data2 = json_decode($something2, true);
+                       $user_whallet_id=$data2[0]['id'];
+                       //validar que el id session y el id asociado a la billetra coincidan
+                       $user_whallet_documento=$data2[0]['documento'];
+                       $user_whallet_celular=$data2[0]['celular'];
+                       if($celular ==  $user_whallet_celular &&  $documento ==  $user_whallet_documento){
+                        $data = [
+                            'status' => 'success',
+                            'code' => 200,
+                            'saldo'=>$saldo_whallet,
+                        ];  
+                       }
+                     else{
+                        $data = [
+                            'status' => 'error',
+                            'code' => 400,
+                            'message' => 'informacion incorrecta'
+                        ];  
+                       }
+                
+                     
+                       }else{
+                        $data = [
+                            'status' => 'error',
+                            'code' => 400,
+                            'message' => 'informacion incorrecta'
+                        ];  
+                       }
+
+                      // print_r($id_user);
+                      
                 }else{
                     $data = [
                         'status' => 'error',
                         'code' => 400,
-                        'message' => 'la cedula o celular no se encuentran registrados!'
+                        'message' => 'la cedula o celular no se encuentran registrados! no'
                     ];
                 }
              }

@@ -141,6 +141,11 @@ class UserController extends AbstractController
                 $signup =  $jwt_auth->signup($email,$pwd);
             }
             return new JsonResponse($signup);
+            // $data = [
+            //     'status' => 'success',
+            //     'code' => 200,
+            //     'message' => 'identificación correcta'
+            // ];
             
             }
     
